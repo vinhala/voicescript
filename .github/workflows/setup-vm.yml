@@ -1,0 +1,191 @@
+name: Setup VM
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-user:
+    runs-on: ubuntu-latest
+    outputs:
+      user_in_docker_group: ${{ steps.set-outputs.outputs.user_in_docker_group }}
+      user_is_sudo: ${{ steps.set-outputs.outputs.user_is_sudo }}
+
+    steps:
+      - name: Check if user is already setup
+        id: set-outputs
+        shell: bash
+        run: |
+          key_file="$RUNNER_TEMP/vm_ssh_key"
+          printf '%s\n' '${{ secrets.VM_SSH_KEY }}' > "$key_file"
+          chmod 600 "$key_file"
+
+          ssh_opts=(-i "$key_file" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
+          remote='${{ secrets.vm_user_name }}@${{ secrets.vm_host }}'
+
+          user_in_docker_group="$(ssh "${ssh_opts[@]}" "$remote" "id -nG | grep -qw docker && echo true || echo false")"
+          user_is_sudo="$(ssh "${ssh_opts[@]}" "$remote" "sudo -n true >/dev/null 2>&1 && echo true || echo false")"
+
+          echo "user_in_docker_group=$user_in_docker_group" >> "$GITHUB_OUTPUT"
+          echo "user_is_sudo=$user_is_sudo" >> "$GITHUB_OUTPUT"
+
+          rm -f "$key_file"
+
+  setup-user:
+    runs-on: ubuntu-latest
+    needs: check-user
+    if: ${{ !contains(needs.check-user.outputs.user_in_docker_group, 'true') && contains(needs.check-user.outputs.user_is_sudo, 'true') }}
+    steps:
+      - name: Setup user on VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.vm_host }}
+          username: ${{ secrets.vm_user_name }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            # Add user to docker group
+            sudo usermod -aG docker ${{ secrets.vm_user_name }}
+            
+            # Reload permissions
+            newgrp docker
+
+            # Create docker config directory with proper permissions
+            mkdir -p /home/${{ secrets.vm_user_name }}/.docker
+            sudo chown ${{ secrets.vm_user_name }}:${{ secrets.vm_user_name }} /home/${{ secrets.vm_user_name }}/.docker
+
+            sudo mkdir -p /home/${{ secrets.vm_user_name }}/logs
+
+            sudo chown -R 1000:1000 /home/${{ secrets.vm_user_name }}/logs
+
+            # Remove the user from the sudo group
+            sudo gpasswd -d ${{ secrets.vm_user_name }} sudo
+
+  check-swarm:
+    runs-on: ubuntu-latest
+    needs: check-user
+    outputs:
+      swarm_initialized: ${{ steps.set-outputs.outputs.is_initialized }}
+
+    steps:
+      - name: Check if Docker Swarm is already initialized
+        id: set-outputs
+        shell: bash
+        run: |
+          key_file="$RUNNER_TEMP/vm_ssh_key"
+          printf '%s\n' '${{ secrets.VM_SSH_KEY }}' > "$key_file"
+          chmod 600 "$key_file"
+
+          ssh_opts=(-i "$key_file" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
+          remote='${{ secrets.vm_user_name }}@${{ secrets.vm_host }}'
+
+          is_initialized="$(ssh "${ssh_opts[@]}" "$remote" "[ \"\$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null)\" = \"active\" ] && echo true || echo false")"
+          echo "is_initialized=$is_initialized" >> "$GITHUB_OUTPUT"
+
+          rm -f "$key_file"
+
+  setup-swarm:
+    runs-on: ubuntu-latest
+    needs: 
+      - check-user
+      - check-swarm
+    if: ${{ contains(needs.check-swarm.outputs.swarm_initialized, 'false') && contains(needs.check-user.outputs.user_is_sudo, 'true') }}
+    steps:
+      - name: Setup Docker Swarm on VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.vm_host }}
+          username: ${{ secrets.vm_user_name }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            # Update package list
+            sudo apt-get update
+
+            # Install required packages
+            sudo apt-get install -y \
+              apt-transport-https \
+              ca-certificates \
+              curl \
+              software-properties-common \
+              make \
+              gnupg \
+              jq
+
+            # Add Docker GPG key
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+            # Add Docker repository
+            sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+            # Update package list again
+            sudo apt-get update
+
+            # Install Docker
+            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+
+            # Start and enable Docker service
+            sudo systemctl start docker
+            sudo systemctl enable docker
+
+            # Initialize Docker Swarm
+            sudo docker swarm init
+
+  check-caddy-network:
+    runs-on: ubuntu-latest
+    needs: check-swarm
+    if: ${{ contains(needs.check-swarm.outputs.swarm_initialized, 'true') }}
+    outputs:
+      network_exists: ${{ steps.set-outputs.outputs.network_exists }}
+    steps:
+      - name: Check if caddy network already exists on VM
+        id: set-outputs
+        shell: bash
+        run: |
+          key_file="$RUNNER_TEMP/vm_ssh_key"
+          printf '%s\n' '${{ secrets.VM_SSH_KEY }}' > "$key_file"
+          chmod 600 "$key_file"
+
+          ssh_opts=(-i "$key_file" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
+          remote='${{ secrets.vm_user_name }}@${{ secrets.vm_host }}'
+
+          network_exists="$(ssh "${ssh_opts[@]}" "$remote" "docker network inspect caddy-network >/dev/null 2>&1 && echo true || echo false")"
+          echo "network_exists=$network_exists" >> "$GITHUB_OUTPUT"
+
+          rm -f "$key_file"
+
+  setup-caddy:
+    if: ${{ contains(needs.check-caddy-network.outputs.network_exists, 'false') && contains(needs.check-user.outputs.user_in_docker_group, 'true') }}
+    runs-on: ubuntu-latest
+    needs:
+      - check-caddy-network
+      - check-user
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Copy caddy stack definition to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.vm_host }}
+          username: ${{ secrets.vm_user_name }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          source: "infrastructure/docker-compose.caddy.yml"
+          target: "/home/${{ secrets.vm_user_name }}/infrastructure/"
+          strip_components: 1
+
+      - name: Deploy caddy stack on VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.vm_host }}
+          username: ${{ secrets.vm_user_name }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.vm_user_name }}/infrastructure
+            docker stack deploy -c docker-compose.caddy.yml caddy
+
+      - name: Clean up
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.vm_host }}
+          username: ${{ secrets.vm_user_name }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            rm -rf /home/${{ secrets.vm_user_name }}/infrastructure/* 

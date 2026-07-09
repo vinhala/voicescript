@@ -1,0 +1,17 @@
+[
+    {
+      "path": "backend",
+      "image": "backend",
+      "services": [
+        "api"
+      ]
+    },
+    {
+        "path":"frontend",
+        "image":"frontend",
+        "services": [
+          "frontend"
+        ]
+    }
+  ]
+  

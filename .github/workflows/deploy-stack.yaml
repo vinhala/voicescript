@@ -1,0 +1,47 @@
+name: Deploy Stack
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-env:
+    uses: ./.github/workflows/sync-env.yaml
+    secrets: inherit
+
+  deploy:
+    needs: sync-env
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy files to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.vm_host }}
+          username: ${{ secrets.vm_user_name }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          source: "infrastructure/*"
+          target: "/home/${{ secrets.vm_user_name }}/infrastructure/"
+          strip_components: 1
+
+      - name: Deploy on VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.vm_host }}
+          username: ${{ secrets.vm_user_name }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.vm_user_name }}/infrastructure
+            # Verify Docker access
+            docker ps
+            # Login to GitHub Container Registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            # Pull images
+            jq -r '.[].image' services.json | while IFS= read -r image; do
+              docker pull --platform=linux/amd64 "ghcr.io/${{ github.repository_owner }}/${image}:latest"
+            done
+            # Deploy stack
+            make deploy-prod STACK_NAME=${{ vars.STACK_NAME }} ENV_FILE=/home/${{ secrets.vm_user_name }}/.env GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
+            # Cleanup
+            rm -rf /home/${{ secrets.vm_user_name }}/infrastructure/* 

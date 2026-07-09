@@ -1,0 +1,60 @@
+name: Update Images and Deploy Services
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  process-services:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      matrix: ${{ steps.matrix-builder.outputs.matrix }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read services config
+        id: read-services
+        run: |
+          content=$(cat infrastructure/services.json | jq -c .)
+          echo "services=$content" >> $GITHUB_OUTPUT
+
+      - name: Build matrix
+        env:
+          SERVICES: ${{ steps.read-services.outputs.services }}
+        run: |
+          # Create matrix directly from all services
+          matrix=$(echo "{\"include\": $SERVICES}")
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+        id: matrix-builder
+
+      - name: Debug matrix
+        run: echo "${{ steps.matrix-builder.outputs.matrix }}"
+
+  update-services:
+    needs: [process-services]
+    if: ${{ fromJSON(needs.process-services.outputs.matrix).include[0] }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix: ${{ fromJSON(needs.process-services.outputs.matrix) }}
+    uses: ./.github/workflows/update-service.yaml
+    with:
+      service_names: ${{ toJSON(matrix.services) }}
+      image_name: ${{ matrix.image }}
+      dockerfile_path: ${{ matrix.path }}
+      stack_name: ${{ vars.STACK_NAME }}
+    secrets: inherit
+
+  cleanup-images:
+    needs: [update-services]
+    uses: ./.github/workflows/cleanup-images.yaml
+    secrets: inherit

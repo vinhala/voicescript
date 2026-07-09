@@ -1,0 +1,31 @@
+name: Sync Environment File
+
+on:
+  workflow_call:
+    secrets:
+      VM_HOST:
+        required: true
+      VM_USER_NAME:
+        required: true
+      VM_SSH_KEY:
+        required: true
+      SECRET_API_KEY:
+        required: true
+
+jobs:
+  sync-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write .env file on VM
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SECRET_API_KEY: ${{ secrets.SECRET_API_KEY }}
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER_NAME }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          envs: SECRET_API_KEY
+          script: |
+            {
+              printf 'SECRET_API_KEY=%s\n' "${SECRET_API_KEY}"
+            } > ~/.env

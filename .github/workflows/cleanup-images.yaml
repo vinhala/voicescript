@@ -1,0 +1,32 @@
+name: Cleanup Unused Docker Images
+
+on:
+  workflow_call:
+    secrets:
+      VM_HOST:
+        required: true
+      VM_USER_NAME:
+        required: true
+      VM_SSH_KEY:
+        required: true
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Cleanup unused Docker images
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER_NAME }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            # Remove all unused images (dangling images)
+            docker image prune -f
+            
+            # Remove all unused images (including non-dangling)
+            docker image prune -a -f
+            
+            # Remove unused build cache
+            docker builder prune -f --keep-storage 10GB 
