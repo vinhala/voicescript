@@ -1,0 +1,94 @@
+services:
+  twenty-server:
+    image: twentycrm/twenty:${TWENTY_TAG:-latest}
+    volumes:
+      - twenty_server_local_data:/app/packages/twenty-server/.local-storage
+    environment:
+      NODE_PORT: 3000
+      PG_DATABASE_URL: postgres://postgres:${TWENTY_PG_DATABASE_PASSWORD:?TWENTY_PG_DATABASE_PASSWORD is required}@twenty-db:5432/default
+      SERVER_URL: https://${TWENTY_HOSTNAME:?TWENTY_HOSTNAME is required}
+      REDIS_URL: redis://twenty-redis:6379
+      DISABLE_DB_MIGRATIONS: ${TWENTY_DISABLE_DB_MIGRATIONS:-false}
+      DISABLE_CRON_JOBS_REGISTRATION: ${TWENTY_DISABLE_CRON_JOBS_REGISTRATION:-false}
+      STORAGE_TYPE: local
+      ENCRYPTION_KEY: ${TWENTY_ENCRYPTION_KEY:?TWENTY_ENCRYPTION_KEY is required}
+      FALLBACK_ENCRYPTION_KEY: ${TWENTY_FALLBACK_ENCRYPTION_KEY:-}
+      APP_SECRET: ${TWENTY_APP_SECRET:-}
+    networks:
+      - caddy-network
+      - private
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:3000/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      update_config:
+        order: start-first
+      labels:
+        caddy: ${TWENTY_HOSTNAME:?TWENTY_HOSTNAME is required}
+        caddy.reverse_proxy: "{{upstreams 3000}}"
+
+  twenty-worker:
+    image: twentycrm/twenty:${TWENTY_TAG:-latest}
+    command: ["yarn", "worker:prod"]
+    volumes:
+      - twenty_server_local_data:/app/packages/twenty-server/.local-storage
+    environment:
+      PG_DATABASE_URL: postgres://postgres:${TWENTY_PG_DATABASE_PASSWORD:?TWENTY_PG_DATABASE_PASSWORD is required}@twenty-db:5432/default
+      SERVER_URL: https://${TWENTY_HOSTNAME:?TWENTY_HOSTNAME is required}
+      REDIS_URL: redis://twenty-redis:6379
+      DISABLE_DB_MIGRATIONS: "true"
+      DISABLE_CRON_JOBS_REGISTRATION: "true"
+      STORAGE_TYPE: local
+      ENCRYPTION_KEY: ${TWENTY_ENCRYPTION_KEY:?TWENTY_ENCRYPTION_KEY is required}
+      FALLBACK_ENCRYPTION_KEY: ${TWENTY_FALLBACK_ENCRYPTION_KEY:-}
+      APP_SECRET: ${TWENTY_APP_SECRET:-}
+    networks:
+      - private
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  twenty-db:
+    image: postgres:16
+    volumes:
+      - twenty_db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: default
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${TWENTY_PG_DATABASE_PASSWORD:?TWENTY_PG_DATABASE_PASSWORD is required}
+    networks:
+      - private
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -h localhost -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  twenty-redis:
+    image: redis:latest
+    command: ["redis-server", "--maxmemory-policy", "noeviction"]
+    networks:
+      - private
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  twenty_db_data: {}
+  twenty_server_local_data: {}

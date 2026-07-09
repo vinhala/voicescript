@@ -18,5 +18,9 @@ networks:
     attachable: true
     driver: overlay
 
+  private:
+    attachable: true
+    driver: overlay
+
 volumes:
   caddy_data: {}
