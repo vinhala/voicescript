@@ -117,7 +117,7 @@ function apiErrorMessage(error: unknown, fallback: string) {
   <main class="page-shell">
     <section class="workspace">
       <header class="header">
-        <p class="eyebrow">DieStimme</p>
+        <p class="eyebrow">voicescript</p>
         <h1>Start a requirements session analysis</h1>
         <p class="subtitle">
           Select a CRM company and opportunity, attach the session recording, and generate the

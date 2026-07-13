@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/vinhala/diestimme/backend/internal/domain"
+	"github.com/vinhala/voicescript/backend/internal/domain"
 )
 
 type Transcriber interface {
@@ -67,7 +67,7 @@ func (s *Service) Run(ctx context.Context, recording Recording) (domain.Analysis
 		return domain.AnalysisResultResponse{}, err
 	}
 
-	noteID, err := s.crm.CreateNote(ctx, "DieStimme requirements analysis", markdown)
+	noteID, err := s.crm.CreateNote(ctx, "voicescript requirements analysis", markdown)
 	if err != nil {
 		return domain.AnalysisResultResponse{}, err
 	}

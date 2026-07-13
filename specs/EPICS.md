@@ -1,5 +1,5 @@
 # Epics
-DieStimme is proof of concept implementation of a service that analyses the recordings of a requirements elicitation session with a new client of Voiceline. The service analyses the recording for a session and based on it copmletes a standardised questionnaire, which is then stored in Voiceline's CRM system (in this case Twenty CRM).
+voicescript is proof of concept implementation of a service that analyses the recordings of a requirements elicitation session with a new client of Voiceline. The service analyses the recording for a session and based on it copmletes a standardised questionnaire, which is then stored in Voiceline's CRM system (in this case Twenty CRM).
 
 ## E.1 Analyse Recording
 During their initial meeting with customers the forward deployed engineers of Voiceline determine how the client plans to use Voiceline in conjunction with their CRM system. An LLM pipeline turns the recording into a transcript with detection of individual speakers and then fills out a standardised questionnaire as far possible and marks open questions that require clarification.

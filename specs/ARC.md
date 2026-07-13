@@ -1,5 +1,5 @@
 # Architecture Summary
-DieStimme is proof of concept implementation of a service that analyses the recordings of a requirements elicitation session with a new client of Voiceline. The service analyses the recording for a session and based on it copmletes a standardised questionnaire, which is then stored in Voiceline's CRM system. It uses Twenty CRM as Voiceline's CRM and the OpenAI api as LLM provider. Interactions with the user are made through a simple web interface.
+voicescript is proof of concept implementation of a service that analyses the recordings of a requirements elicitation session with a new client of Voiceline. The service analyses the recording for a session and based on it copmletes a standardised questionnaire, which is then stored in Voiceline's CRM system. It uses Twenty CRM as Voiceline's CRM and the OpenAI api as LLM provider. Interactions with the user are made through a simple web interface.
 
 ## Components
 There are four major components to the system. Two internal, two external.

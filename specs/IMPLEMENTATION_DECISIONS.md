@@ -1,8 +1,8 @@
-# DieStimme Implementation Decisions Report
+# voicescript Implementation Decisions Report
 
 ## Context
 
-The implementation turns DieStimme from a scaffold into the synchronous proof-of-concept described in `EPICS.md` and `ARC.md`: a Nuxt web interface uploads a requirements session recording to a Go backend, the backend uses OpenAI to transcribe and analyze it, and the result is stored in Twenty CRM as a note linked to the selected opportunity.
+The implementation turns voicescript from a scaffold into the synchronous proof-of-concept described in `EPICS.md` and `ARC.md`: a Nuxt web interface uploads a requirements session recording to a Go backend, the backend uses OpenAI to transcribe and analyze it, and the result is stored in Twenty CRM as a note linked to the selected opportunity.
 
 ## Backend Architecture
 

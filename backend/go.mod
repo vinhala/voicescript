@@ -1,4 +1,4 @@
-module github.com/vinhala/diestimme/backend
+module github.com/vinhala/voicescript/backend
 
 go 1.24
 

@@ -6,12 +6,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/vinhala/diestimme/backend/internal/analysis"
-	"github.com/vinhala/diestimme/backend/internal/config"
-	"github.com/vinhala/diestimme/backend/internal/handlers"
-	"github.com/vinhala/diestimme/backend/internal/openaiapi"
-	"github.com/vinhala/diestimme/backend/internal/questionnaire"
-	"github.com/vinhala/diestimme/backend/internal/twenty"
+	"github.com/vinhala/voicescript/backend/internal/analysis"
+	"github.com/vinhala/voicescript/backend/internal/config"
+	"github.com/vinhala/voicescript/backend/internal/handlers"
+	"github.com/vinhala/voicescript/backend/internal/openaiapi"
+	"github.com/vinhala/voicescript/backend/internal/questionnaire"
+	"github.com/vinhala/voicescript/backend/internal/twenty"
 )
 
 func main() {
@@ -36,7 +36,7 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	logger.Info("starting DieStimme backend", "port", cfg.Port)
+	logger.Info("starting voicescript backend", "port", cfg.Port)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Error("backend stopped", "error", err)
 		os.Exit(1)

@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/vinhala/diestimme/backend/internal/domain"
+	"github.com/vinhala/voicescript/backend/internal/domain"
 )
 
 type Client struct {

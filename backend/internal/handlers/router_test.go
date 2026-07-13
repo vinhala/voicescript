@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vinhala/diestimme/backend/internal/analysis"
-	"github.com/vinhala/diestimme/backend/internal/domain"
+	"github.com/vinhala/voicescript/backend/internal/analysis"
+	"github.com/vinhala/voicescript/backend/internal/domain"
 )
 
 type fakeCRMReader struct{}
