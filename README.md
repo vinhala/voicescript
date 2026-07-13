@@ -1,13 +1,20 @@
-# docker-stack-base
-Base repo for setting up a VM with docker swarm stack
+# voicescript
+POC of a service that analyses requirements elicitation sessions for Voiceline requirements engineers.
 
-## Required GitHub secrets
-- VM_HOST
-- VM_USER_NAME
-- VM_SSH_KEY
-
-## Required GitHub variables
-- STACK_NAME
+## Setup
+- Adjust `backend/internal/questionnaire/client_onboarding.md` to your needs
+- Copy the .env.example file
+- Set OPENAI_API_KEY
+- cd into infrastructure and run `make deploy-twenty`
+- Setup Twenty workspace and generate an api key in the setting of Twenty
+- Set TWENTY_API_KEY
+- In infrastructure run `make build-local`
+- Run `make deploy` and wait for docker services to settle
 
 ## Usage
-Use as template for creating new docker swarm stack deployments. As a first step run the Setup VM workflow to install dependencies, configure the user and create the caddy network. Will automatically skip steps that are not necessary anymore. The Setup VM workflow can thus be run without problem multiple times.
+- Open the browser and go to FRONTEND_URL
+- Select a company and opportunity from the form
+- Select an audio recording of a requirements elicitation session
+- Select *analyse*
+- Wait for analysis to complete and show the filled out questionnaire
+- Check in Twenty CRM for the created note linked to the selected opportunity
