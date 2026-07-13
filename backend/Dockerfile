@@ -1,8 +1,28 @@
-FROM python:3.12-slim
+FROM golang:1.24-bookworm AS builder
+
+WORKDIR /src
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/backend ./cmd/server
+
+FROM debian:bookworm-slim
 
 WORKDIR /app
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-COPY app ./app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && update-ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /out/backend /app/backend
+COPY entrypoint.sh /entrypoint.sh
+
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 80
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
+
+ENTRYPOINT ["/entrypoint.sh"]

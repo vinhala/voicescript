@@ -1,38 +1,50 @@
 # Architecture Summary
-DieStimme is a light-weight implementation of the Voiceline AI assistant. It can process incoming phone calls and perform actions in a Twenty CRM system on the callers behalf. Authentication and authorisation is based on the callers' phone numbers.
+DieStimme is proof of concept implementation of a service that analyses the recordings of a requirements elicitation session with a new client of Voiceline. The service analyses the recording for a session and based on it copmletes a standardised questionnaire, which is then stored in Voiceline's CRM system. It uses Twenty CRM as Voiceline's CRM and the OpenAI api as LLM provider. Interactions with the user are made through a simple web interface.
 
 ## Components
-There are four major components to the system.
-
-### Twilio
-Twilio is needed to enable phone calls to the DieStimme assistant.
-
-#### Responsibilities
-- Accept incoming calls and provide caller information to backend via webhook calls
-- Handle initial identification and authentication of users by sending phone number and phone pin to backend webhook
-- Stream authenticated calls' audio to and from backend for DieStimme assistant sessions
+There are four major components to the system. Two internal, two external.
 
 ### OpenAI API
-OpenAI API is used to convert audio data from Twilio to text and vice versa and to handle the assistant's reasoning.
+OpenAI API is used to convert audio data to text and analyse the transcipts to generate a filled out questionnaire.
 
 #### Responsibilities
 - Convert audio data to text
-- Provide LLM for assistant reasoning
-- Convert assistant responses to audio
+- Provide LLM for generating questionnaire
+
+#### Relations
+- Accept HTTP request from Go backend
 
 ### Go Backend
-The internal Go backend defines the assistant workflows and connects to the Twenty CRM system.
+The internal Go backend offers a light-weight application server based on the Gin framework that accepts requests from the web interface and communicates with the OpenAI api to generate the questionnaire. It also integrates with Twenty CRM to fetch existing clients and store the questionnaires.
 
 #### Responsibilities
-- Receive webhook calls from Twilio to identify and authenticate callers
-- Run DieStimme agent sessions
-- Execute agent function tool calls
-- Connect to Twenty CRM to enable tool calls and identify and authenticate callers
+- Handle requests from web interface
+- Interact with OpenAI API
+- Interact with Twenty CRM API
+- Coordinate recording analysis and persistence
+
+#### Relations
+- Interact with Twenty CRM API via HTTP requests
+- Interact with OpenAI API via HTTP requests
+- Serve HTTP requests from the Nuxt server
 
 ### Twenty CRM
 Twenty CRM is used as implementation of the CRM and represents the persistence layer.
 
 #### Responsibilities
-- Holds sales reps as People objects with custom Phone Pin field for caller identification and authentication
 - Store companies, opportunities and notes
-- Provide the GraphQL API for accessing and manipulating companies, opportunities and notes
+- Provide the REST HTTP API for accessing and manipulating companies, opportunities and notes
+
+#### Relations
+- Accept HTTP requests from Go backend
+- Serve web interface for CRM to FDE's browser
+
+### Nuxt Webserver
+A Nuxt webserver is responsible for providing the web interface that FDEs use for providing the session recordings.
+
+#### Responsibilities
+- Serve the web interface accessible to FDEs
+
+#### Relations
+- Interact with Go backend via HTTP
+- Serve html page to FDE's browser

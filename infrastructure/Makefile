@@ -20,11 +20,21 @@ init:
 
 # build local images
 build-local:
-	docker build -t ghcr.io/$(GITHUB_REPOSITORY_OWNER)/backend:latest ../api
+	docker build -t ghcr.io/$(GITHUB_REPOSITORY_OWNER)/backend:latest ../backend
+	docker build -t ghcr.io/$(GITHUB_REPOSITORY_OWNER)/frontend:latest ../frontend
+
+build-backend:
+	docker build -t ghcr.io/$(GITHUB_REPOSITORY_OWNER)/backend:latest ../backend
+
+build-frontend:
+	docker build -t ghcr.io/$(GITHUB_REPOSITORY_OWNER)/frontend:latest ../frontend
 
 # deploy services
-deploy:
+deploy-twenty:
 	docker stack deploy -c docker-compose.network.yml -c docker-compose.twenty.yml ${STACK_NAME} --detach=false --resolve-image=always
+
+deploy:
+	docker stack deploy -c docker-compose.network.yml -c docker-compose.twenty.yml -c docker-compose.app.yml ${STACK_NAME} --detach=false --resolve-image=always
 # down all services
 down:
 	docker stack rm ${STACK_NAME}
