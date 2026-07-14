@@ -18,3 +18,7 @@ POC of a service that analyses requirements elicitation sessions for Voiceline r
 - Select *analyse*
 - Wait for analysis to complete and show the filled out questionnaire
 - Check in Twenty CRM for the created note linked to the selected opportunity
+
+## Other
+- Voiceline analysis in `VOICELINE.md`
+- Sample requirements elicitation session recording in `voicescript-sample.mp3`
