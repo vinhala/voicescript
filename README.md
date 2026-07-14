@@ -22,3 +22,7 @@ POC of a service that analyses requirements elicitation sessions for Voiceline r
 ## Other
 - Voiceline analysis in `VOICELINE.md`
 - Sample requirements elicitation session recording in `voicescript-sample.mp3`
+
+## Git LFS
+- Install `git-lfs` and run `git lfs install` once before adding or checking out media assets.
+- Media and binary design files are tracked through GitHub-compatible Git LFS rules in `.gitattributes`; SVG files remain normal text files so they stay diffable.
